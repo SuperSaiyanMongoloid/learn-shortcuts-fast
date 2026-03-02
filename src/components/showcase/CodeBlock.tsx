@@ -6,11 +6,11 @@ interface CodeBlockProps {
   title?: string;
   code: string;
   language?: string;
+  highlightLines?: number[];
 }
 
-export function CodeBlock({ title, code }: CodeBlockProps) {
+export function CodeBlock({ title, code, highlightLines }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
-  const lines = code.split("\n");
 
   const copy = async () => {
     await navigator.clipboard.writeText(code);
@@ -18,28 +18,20 @@ export function CodeBlock({ title, code }: CodeBlockProps) {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const lines = code.split("\n");
+
   return (
     <div className="w-full">
       {title && (
         <div className="flex items-center justify-between mb-2">
           <span className="font-mono text-xs lowercase text-muted-foreground">{title}</span>
-        </div>
-      )}
-      <div className="border border-border overflow-hidden">
-        {/* Top bar */}
-        <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card/50">
-          <div className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-muted-foreground/20" />
-            <span className="h-2 w-2 rounded-full bg-muted-foreground/20" />
-            <span className="h-2 w-2 rounded-full bg-muted-foreground/20" />
-          </div>
           <button
             onClick={copy}
             className="relative h-6 w-6 flex items-center justify-center text-muted-foreground transition-colors hover:text-foreground"
             aria-label="Copy code"
           >
             <Copy
-              className={`h-3 w-3 absolute transition-all duration-300 ${
+              className={`h-3.5 w-3.5 absolute transition-all duration-300 ${
                 copied
                   ? "opacity-0 scale-50 rotate-12"
                   : "opacity-100 scale-100 rotate-0"
@@ -47,7 +39,7 @@ export function CodeBlock({ title, code }: CodeBlockProps) {
               style={{ transitionTimingFunction: "cubic-bezier(0.34, 1.56, 0.64, 1)" }}
             />
             <Check
-              className={`h-3 w-3 absolute text-primary transition-all duration-300 ${
+              className={`h-3.5 w-3.5 absolute text-primary transition-all duration-300 ${
                 copied
                   ? "opacity-100 scale-100 rotate-0"
                   : "opacity-0 scale-50 -rotate-12"
@@ -56,25 +48,32 @@ export function CodeBlock({ title, code }: CodeBlockProps) {
             />
           </button>
         </div>
-        {/* Code area with line numbers */}
-        <div className="overflow-x-auto bg-background">
-          <pre className="py-3">
-            {lines.map((line, i) => (
-              <div key={i} className="flex hover:bg-card/30 transition-colors">
-                <span className="select-none w-10 shrink-0 text-right pr-4 font-mono text-[11px] leading-relaxed text-muted-foreground/25">
-                  {i + 1}
-                </span>
-                <span className="pl-4 border-l border-border/30 font-mono text-[11px] leading-relaxed flex-1 pr-4">
-                  {line ? (
+      )}
+      <div className="overflow-x-auto code-scroll border border-border bg-card p-4">
+        <pre>
+          {highlightLines && highlightLines.length > 0 ? (
+            <code className="font-mono text-sm leading-relaxed">
+              {lines.map((line, i) => {
+                const lineNum = i + 1;
+                const isHighlighted = highlightLines.includes(lineNum);
+                return (
+                  <div
+                    key={i}
+                    className={`px-1 -mx-1 transition-colors duration-300 ${
+                      isHighlighted
+                        ? "bg-primary/10 border-l-2 border-primary pl-2"
+                        : "border-l-2 border-transparent pl-2"
+                    }`}
+                  >
                     <SyntaxHighlight code={line} />
-                  ) : (
-                    "\u00A0"
-                  )}
-                </span>
-              </div>
-            ))}
-          </pre>
-        </div>
+                  </div>
+                );
+              })}
+            </code>
+          ) : (
+            <SyntaxHighlight code={code} />
+          )}
+        </pre>
       </div>
     </div>
   );

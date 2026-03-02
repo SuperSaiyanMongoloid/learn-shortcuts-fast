@@ -25,6 +25,7 @@ export interface CodeExample {
   title: string;
   code: string;
   language?: string;
+  description?: string;
 }
 
 export interface Cta {
@@ -84,6 +85,14 @@ export interface PackageConfig {
 
   features: Feature[];
   apiProps: ApiProp[];
+  /** Builder chain methods (.mod, .ctrl, .key(), .on(), etc.) */
+  builderMethods?: ApiProp[];
+  /** Return values from .on() */
+  returnValues?: ApiProp[];
+  /** Scope management API */
+  scopeApi?: ApiProp[];
+  /** Utility exports (formatShortcut, useShortcutMap, etc.) */
+  utilityExports?: ApiProp[];
   codeExamples: CodeExample[];
   useCases: string;
 }

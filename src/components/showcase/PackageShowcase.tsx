@@ -136,7 +136,25 @@ export function PackageShowcase({ config, demoContent }: PackageShowcaseProps) {
 
           {/* API reference */}
           <div id="api" className="border-y border-dashed border-border -mx-[1px] px-8 py-8 bg-card/30">
-            <ApiTable props={config.apiProps} />
+            <div className="flex flex-col gap-10">
+              <ApiTable title="hook options" props={config.apiProps} />
+
+              {config.builderMethods && config.builderMethods.length > 0 && (
+                <ApiTable title="builder chain methods" props={config.builderMethods} />
+              )}
+
+              {config.returnValues && config.returnValues.length > 0 && (
+                <ApiTable title=".on() return value" props={config.returnValues} />
+              )}
+
+              {config.scopeApi && config.scopeApi.length > 0 && (
+                <ApiTable title="scope management" props={config.scopeApi} />
+              )}
+
+              {config.utilityExports && config.utilityExports.length > 0 && (
+                <ApiTable title="utility exports" props={config.utilityExports} />
+              )}
+            </div>
           </div>
 
           {/* Use cases */}
