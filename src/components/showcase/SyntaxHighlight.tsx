@@ -113,13 +113,13 @@ function tokenize(code: string): Token[] {
 const TOKEN_CLASSES: Record<TokenType, string> = {
   keyword: "text-primary",
   string: "text-emerald-400",
-  comment: "text-muted-foreground/50 italic",
+  comment: "text-muted-foreground/40 italic",
   type: "text-sky-400",
   function: "text-amber-300",
-  number: "text-orange-300",
-  punctuation: "text-muted-foreground",
+  number: "text-orange-400",
+  punctuation: "text-muted-foreground/60",
   "jsx-tag": "text-sky-400",
-  plain: "text-foreground/80",
+  plain: "text-foreground/70",
 };
 
 interface SyntaxHighlightProps {
