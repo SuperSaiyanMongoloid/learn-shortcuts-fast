@@ -4,6 +4,7 @@ interface Example {
   title: string;
   code: string;
   language?: string;
+  description?: string;
 }
 
 interface CodeExamplesProps {
@@ -39,9 +40,19 @@ instance.enable()`,
 
 export function CodeExamples({ examples = defaultExamples }: CodeExamplesProps) {
   return (
-    <div className="flex flex-col gap-8 w-full">
+    <div id="examples" className="flex flex-col gap-10 w-full">
+      <h2 className="font-display text-base font-bold lowercase tracking-tight text-foreground">
+        real-world examples
+      </h2>
       {examples.map((ex) => (
-        <CodeBlock key={ex.title} title={ex.title} code={ex.code} language={ex.language} />
+        <div key={ex.title} className="flex flex-col gap-2">
+          {ex.description && (
+            <p className="text-[11px] leading-relaxed text-muted-foreground lowercase">
+              {ex.description}
+            </p>
+          )}
+          <CodeBlock title={ex.title} code={ex.code} language={ex.language} />
+        </div>
       ))}
     </div>
   );

@@ -6,9 +6,10 @@ interface CodeBlockProps {
   title?: string;
   code: string;
   language?: string;
+  highlightLines?: number[];
 }
 
-export function CodeBlock({ title, code }: CodeBlockProps) {
+export function CodeBlock({ title, code, highlightLines }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
 
   const copy = async () => {
@@ -16,6 +17,8 @@ export function CodeBlock({ title, code }: CodeBlockProps) {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const lines = code.split("\n");
 
   return (
     <div className="w-full">
@@ -46,9 +49,30 @@ export function CodeBlock({ title, code }: CodeBlockProps) {
           </button>
         </div>
       )}
-      <div className="overflow-x-auto border border-border bg-card p-4">
+      <div className="overflow-x-auto code-scroll border border-border bg-card p-4">
         <pre>
-          <SyntaxHighlight code={code} />
+          {highlightLines && highlightLines.length > 0 ? (
+            <code className="font-mono text-sm leading-relaxed">
+              {lines.map((line, i) => {
+                const lineNum = i + 1;
+                const isHighlighted = highlightLines.includes(lineNum);
+                return (
+                  <div
+                    key={i}
+                    className={`px-1 -mx-1 transition-colors duration-300 ${
+                      isHighlighted
+                        ? "bg-primary/10 border-l-2 border-primary pl-2"
+                        : "border-l-2 border-transparent pl-2"
+                    }`}
+                  >
+                    <SyntaxHighlight code={line} />
+                  </div>
+                );
+              })}
+            </code>
+          ) : (
+            <SyntaxHighlight code={code} />
+          )}
         </pre>
       </div>
     </div>

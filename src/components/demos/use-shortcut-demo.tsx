@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef } from "react";
 import { useShortcut, formatShortcut } from "@remcostoeten/use-shortcut";
-import { CodeBlock } from "@/components/showcase/CodeBlock";
+import { SyntaxHighlight } from "@/components/showcase/SyntaxHighlight";
 
 interface ShortcutEvent {
   id: number;
@@ -17,53 +17,62 @@ interface DemoShortcut {
   combo: string;
   display: string;
   label: string;
+  /** 1-based line number in the source code block this shortcut maps to */
+  sourceLine: number;
 }
 
 const DEMO_SHORTCUTS: DemoShortcut[] = [
-  { code: '$.cmd.key("s").on(() => save())', combo: "cmd+s", display: "", label: "save" },
-  { code: '$.mod.key("k").on(() => search())', combo: "mod+k", display: "", label: "search" },
-  { code: '$.mod.key("z").on(() => undo())', combo: "mod+z", display: "", label: "undo" },
-  { code: '$.mod.key("c").on(() => copy())', combo: "mod+c", display: "", label: "copy" },
-  { code: '$.key("/").on(() => focusSearch())', combo: "/", display: "/", label: "focus search" },
-  { code: '$.key("escape").on(() => dismiss())', combo: "escape", display: "Esc", label: "dismiss" },
+  { code: '$.cmd.key("s").on(() => save())', combo: "cmd+s", display: "", label: "save", sourceLine: 3 },
+  { code: '$.mod.key("k").on(() => search())', combo: "mod+k", display: "", label: "search", sourceLine: 4 },
+  { code: '$.mod.key("z").on(() => undo())', combo: "mod+z", display: "", label: "undo", sourceLine: 5 },
+  { code: '$.mod.key("c").on(() => copy())', combo: "mod+c", display: "", label: "copy", sourceLine: 6 },
+  { code: '$.key("/").on(() => focusSearch())', combo: "/", display: "/", label: "focus search", sourceLine: 7 },
+  { code: '$.key("escape").on(() => dismiss())', combo: "escape", display: "Esc", label: "dismiss", sourceLine: 8 },
 ];
 
 export function UseShortcutDemo() {
   const [events, setEvents] = useState<ShortcutEvent[]>([]);
   const [isActive, setIsActive] = useState(true);
   const [activeCombo, setActiveCombo] = useState<string | null>(null);
+  const [activeLine, setActiveLine] = useState<number | null>(null);
   const idRef = useRef(0);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
 
-  const pushEvent = useCallback((combo: string, display: string, label: string) => {
+  const pushEvent = useCallback((combo: string, display: string, label: string, line: number) => {
     const id = ++idRef.current;
     setEvents((prev) => [{ id, combo, display, label, timestamp: Date.now() }, ...prev].slice(0, MAX_EVENTS));
     setActiveCombo(combo);
-    setTimeout(() => setActiveCombo(null), 400);
+    setActiveLine(line);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
+      setActiveCombo(null);
+      setActiveLine(null);
+    }, 600);
   }, []);
 
   const $ = useShortcut({ disabled: !isActive, ignoreInputs: true });
 
   const save = $.cmd.key("s").on(
-    () => pushEvent("cmd+s", formatShortcut("cmd+s"), "save"),
+    () => pushEvent("cmd+s", formatShortcut("cmd+s"), "save", 3),
     { preventDefault: true }
   );
   const search = $.mod.key("k").on(
-    () => pushEvent("mod+k", formatShortcut("mod+k"), "search"),
+    () => pushEvent("mod+k", formatShortcut("mod+k"), "search", 4),
     { preventDefault: true }
   );
   const undo = $.mod.key("z").on(
-    () => pushEvent("mod+z", formatShortcut("mod+z"), "undo"),
+    () => pushEvent("mod+z", formatShortcut("mod+z"), "undo", 5),
     { preventDefault: true }
   );
-  const copy = $.mod.key("c").on(
-    () => pushEvent("mod+c", formatShortcut("mod+c"), "copy"),
+  const copyShortcut = $.mod.key("c").on(
+    () => pushEvent("mod+c", formatShortcut("mod+c"), "copy", 6),
     { preventDefault: true }
   );
   $.key("slash").on(
-    () => pushEvent("/", "/", "focus search"),
+    () => pushEvent("/", "/", "focus search", 7),
   );
   $.key("escape").on(
-    () => pushEvent("escape", "Esc", "dismiss"),
+    () => pushEvent("escape", "Esc", "dismiss", 8),
   );
 
   // Resolve display strings from the actual results
@@ -72,7 +81,7 @@ export function UseShortcutDemo() {
     display: i === 0 ? save.display
       : i === 1 ? search.display
       : i === 2 ? undo.display
-      : i === 3 ? copy.display
+      : i === 3 ? copyShortcut.display
       : s.display,
   }));
 
@@ -81,12 +90,14 @@ export function UseShortcutDemo() {
 
 ${shortcuts.map((s) => s.code).join("\n")}`;
 
+  const sourceLines = sourceCode.split("\n");
+
   return (
     <div className="w-full flex flex-col gap-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <p className="font-mono text-xs text-muted-foreground lowercase">
-          try these shortcuts — press any combo below
+          try these shortcuts -- press any combo below
         </p>
         <button
           onClick={() => setIsActive(!isActive)}
@@ -101,23 +112,32 @@ ${shortcuts.map((s) => s.code).join("\n")}`;
       {/* Two-column: code + shortcuts */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-px bg-border border border-border">
         {/* Source code */}
-        <div className="bg-card p-4 overflow-x-auto">
+        <div className="bg-card p-4 overflow-x-auto code-scroll">
           <p className="font-mono text-[10px] text-muted-foreground lowercase mb-3">source</p>
           <pre className="text-[11px] leading-relaxed">
             <code className="font-mono text-muted-foreground">
-              {sourceCode.split("\n").map((line, i) => {
-                // Highlight the line whose shortcut was just triggered
-                const isHighlighted = activeCombo && shortcuts.some(
-                  (s) => s.combo === activeCombo && line.includes(s.label)
-                );
+              {sourceLines.map((line, i) => {
+                const lineNum = i + 1;
+                const isHighlighted = activeLine === lineNum;
                 return (
                   <div
                     key={i}
-                    className={`px-1 -mx-1 transition-colors duration-300 ${
-                      isHighlighted ? "bg-primary/10 text-primary" : ""
+                    className={`px-2 -mx-1 transition-all duration-300 border-l-2 ${
+                      isHighlighted
+                        ? "bg-primary/10 border-primary"
+                        : "border-transparent"
                     }`}
+                    style={{
+                      transform: isHighlighted ? "translateX(2px)" : "translateX(0)",
+                      transitionTimingFunction: "cubic-bezier(0.34, 1.56, 0.64, 1)",
+                    }}
                   >
-                    {line || "\u00A0"}
+                    <span className={`inline-block w-5 text-right mr-3 select-none text-[10px] ${
+                      isHighlighted ? "text-primary" : "text-muted-foreground/30"
+                    }`}>
+                      {lineNum}
+                    </span>
+                    {line ? <SyntaxHighlight code={line} /> : "\u00A0"}
                   </div>
                 );
               })}
@@ -127,25 +147,36 @@ ${shortcuts.map((s) => s.code).join("\n")}`;
 
         {/* Shortcut keys grid */}
         <div className="bg-background grid grid-cols-2 gap-px bg-border">
-          {shortcuts.map((s) => (
-            <div
-              key={s.combo}
-              className={`bg-background px-3 py-4 flex flex-col items-center gap-1.5 cursor-default transition-colors duration-300 ${
-                activeCombo === s.combo ? "bg-primary/5" : ""
-              }`}
-            >
-              <kbd
-                className={`font-mono text-sm tracking-wider transition-colors duration-300 ${
-                  activeCombo === s.combo ? "text-primary" : "text-foreground"
+          {shortcuts.map((s) => {
+            const isTriggered = activeCombo === s.combo;
+            return (
+              <div
+                key={s.combo}
+                className={`bg-background px-3 py-4 flex flex-col items-center gap-1.5 cursor-default transition-all duration-300 ${
+                  isTriggered ? "bg-primary/5" : ""
                 }`}
               >
-                {s.display}
-              </kbd>
-              <span className="font-mono text-[10px] text-muted-foreground lowercase">
-                {s.label}
-              </span>
-            </div>
-          ))}
+                <kbd
+                  className={`font-mono text-sm tracking-wider transition-all duration-300 ${
+                    isTriggered ? "text-primary scale-110" : "text-foreground"
+                  }`}
+                  style={{ transitionTimingFunction: "cubic-bezier(0.34, 1.56, 0.64, 1)" }}
+                >
+                  {s.display}
+                </kbd>
+                <span className={`font-mono text-[10px] lowercase transition-colors duration-300 ${
+                  isTriggered ? "text-primary/80" : "text-muted-foreground"
+                }`}>
+                  {s.label}
+                </span>
+                {isTriggered && (
+                  <div className="h-0.5 w-6 bg-primary/50 rounded-full" style={{
+                    animation: "pulseBar 600ms ease-out forwards",
+                  }} />
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
 
@@ -195,6 +226,11 @@ ${shortcuts.map((s) => s.code).join("\n")}`;
         @keyframes slideIn {
           from { opacity: 0; transform: translateY(-8px); }
           to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulseBar {
+          0% { opacity: 1; transform: scaleX(0.3); }
+          50% { opacity: 1; transform: scaleX(1); }
+          100% { opacity: 0; transform: scaleX(0.5); }
         }
       `}</style>
     </div>
